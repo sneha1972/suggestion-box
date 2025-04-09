@@ -197,11 +197,10 @@
 
   <hr>
   <div class="footer">
-  <span>Developed by <strong>CSBS Final Year Students – GPREC</strong> | </span>
-  <span><em>GPREC SUGGESTION BOX</em> | </span>
-  <span>© 2025 All rights reserved.</span>
-</div>
-
+    <span>Developed by <strong>CSBS Final Year Students – GPREC</strong> | </span>
+    <span><em>GPREC SUGGESTION BOX</em> | </span>
+    <span>© 2025 All rights reserved.</span>
+  </div>
 
   <script>
     const output = document.getElementById("output");
@@ -213,12 +212,26 @@
     const entered = prompt("🔐 Enter admin password:");
 
     if (entered === correctPassword) {
-      let suggestions = JSON.parse(localStorage.getItem("suggestions") || "[]");
+      let suggestions = [];
 
-      suggestions.forEach(s => {
-        if (!s.status) s.status = "Pending";
-        if (!s.note) s.note = "";
-      });
+      fetch("https://script.google.com/macros/s/AKfycby2Z76ibttMdaZDc4K0JBDR2HoLIMW1F7gQmHhfjrfDMb8oc6Dwk9PRDVF6aonZclGf/exec")
+        .then(res => res.json())
+        .then(data => {
+          suggestions = data.map(s => ({
+            name: s.name || "Anonymous",
+            dept: s.dept || "",
+            suggestion: s.suggestion || "",
+            time: s.time || "",
+            status: s.status || "Pending",
+            note: s.note || ""
+          }));
+
+          renderDashboard();
+          renderSuggestions();
+        })
+        .catch(err => {
+          output.innerHTML = "<p class='access-denied'>❌ Failed to load suggestions from server.</p>";
+        });
 
       function renderDashboard() {
         const counts = { Pending: 0, "Under Review": 0, Implemented: 0, Rejected: 0, Solved: 0 };
@@ -242,62 +255,21 @@
           const div = document.createElement("div");
           div.className = "suggestion " + s.status.toLowerCase().replace(/\s/g, "");
           div.innerHTML = `
-            <p><strong>👤 Name:</strong> ${s.name || "Anonymous"}</p>
+            <p><strong>👤 Name:</strong> ${s.name}</p>
+            <p><strong>🏷️ Department:</strong> ${s.dept}</p>
             <p><strong>💬 Suggestion:</strong> ${s.suggestion}</p>
             <p><small>🕒 ${s.time}</small></p>
-            <p><strong>Status:</strong>
-              <select class="status-select" onchange="updateStatus(${index}, this.value)">
-                ${["Pending", "Under Review", "Implemented", "Rejected", "Solved"]
-                  .map(opt => `<option ${s.status === opt ? "selected" : ""}>${opt}</option>`)
-                  .join("")}
-              </select>
-            </p>
-            <div class="admin-note">
-              <strong>📝 Admin Note:</strong>
-              <textarea rows="2" onchange="saveNote(${index}, this.value)">${s.note}</textarea>
-            </div>
-            <div class="buttons">
-              <button class="delete-btn" onclick="deleteSuggestion(${index})">🗑️ Delete</button>
-            </div>
+            <p><strong>Status:</strong> ${s.status}</p>
+            <div><strong>📝 Admin Note:</strong> ${s.note}</div>
           `;
           output.appendChild(div);
         });
       }
 
-      window.updateStatus = function(index, value) {
-        suggestions[index].status = value;
-        localStorage.setItem("suggestions", JSON.stringify(suggestions));
-        renderSuggestions();
-        renderDashboard();
-      }
-
-      window.saveNote = function(index, note) {
-        suggestions[index].note = note;
-        localStorage.setItem("suggestions", JSON.stringify(suggestions));
-      }
-
-      window.deleteSuggestion = function(index) {
-        if (confirm("Delete this suggestion?")) {
-          suggestions.splice(index, 1);
-          localStorage.setItem("suggestions", JSON.stringify(suggestions));
-          renderSuggestions();
-          renderDashboard();
-        }
-      }
-
-      window.clearAll = function() {
-        if (confirm("⚠️ Are you sure you want to delete ALL suggestions?")) {
-          localStorage.removeItem("suggestions");
-          suggestions = [];
-          renderSuggestions();
-          renderDashboard();
-        }
-      }
-
-      window.exportCSV = function() {
+      function exportCSV() {
         let csv = "Name,Department,Suggestion,Time,Status,Admin Note\n";
         suggestions.forEach(s => {
-          csv += `${s.name || "Anonymous"},,${s.suggestion.replace(/,/g, ";")},${s.time},${s.status},${s.note.replace(/,/g, ";")}\n`;
+          csv += `"${s.name}","${s.dept}","${s.suggestion}","${s.time}","${s.status}","${s.note}"\n`;
         });
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
@@ -307,11 +279,17 @@
         a.click();
       }
 
+      function clearAll() {
+        if (confirm("⚠️ This will clear the admin display only. Want to continue?")) {
+          output.innerHTML = "<p>✅ Cleared locally. Suggestions remain in Google Sheet.</p>";
+        }
+      }
+
       searchInput.addEventListener("input", renderSuggestions);
       statusFilter.addEventListener("change", renderSuggestions);
+      window.exportCSV = exportCSV;
+      window.clearAll = clearAll;
 
-      renderDashboard();
-      renderSuggestions();
     } else {
       document.body.innerHTML = "<p class='access-denied'>❌ Access Denied. You are not authorized to view this page.</p>";
     }
