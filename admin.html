@@ -47,43 +47,43 @@
       font-size: 1rem;
     }
 
-    .three-dot-menu {
+    .hamburger {
       position: absolute;
       top: 10px;
-      right: 10px;
-    }
-
-    .dropdown {
-      position: relative;
-      display: inline-block;
-    }
-
-    .dropdown-content {
-      display: none;
-      position: absolute;
-      background-color: white;
-      min-width: 160px;
-      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-      z-index: 1;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
-    .dropdown-content button {
-      width: 100%;
-      padding: 8px 12px;
+      right: 15px;
+      font-size: 20px;
+      background: none;
       border: none;
-      background-color: white;
       cursor: pointer;
+      z-index: 1001;
+    }
+
+    .menu {
+      position: absolute;
+      top: 40px;
+      right: 15px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      display: none;
+      flex-direction: column;
+      min-width: 160px;
       font-size: 0.9rem;
+      z-index: 1000;
     }
 
-    .dropdown-content button:hover {
-      background-color: #f1f1f1;
+    .menu button {
+      padding: 0.5rem 1rem;
+      border: none;
+      background: white;
+      text-align: left;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
     }
 
-    .dropdown:hover .dropdown-content {
-      display: block;
+    .menu button:hover {
+      background: #f1f1f1;
     }
 
     .suggestion {
@@ -152,26 +152,14 @@
       font-size: 1.2rem;
       margin-top: 5rem;
     }
-
-    .footer {
-      font-family: 'Segoe UI', sans-serif;
-      text-align: center;
-      color: #555;
-      font-size: 14px;
-      margin-top: 3rem;
-      margin-bottom: 1rem;
-    }
   </style>
 </head>
 <body>
-  <div class="three-dot-menu">
-    <div class="dropdown">
-      <button>⋮</button>
-      <div class="dropdown-content">
-        <button onclick="exportCSV()">📄 Export CSV</button>
-        <button onclick="clearAll()">🧹 Clear All</button>
-      </div>
-    </div>
+  <button class="hamburger" onclick="toggleMenu()">☰</button>
+  <div class="menu" id="menu">
+    <button onclick="exportCSV()">📄 Export CSV</button>
+    <button onclick="exportExcel()">📊 Export Excel</button>
+    <button onclick="clearAll()">🧹 Clear All</button>
   </div>
 
   <h1>📬 GPREC Admin Panel</h1>
@@ -195,43 +183,27 @@
     <a href="index.html">← Back to Suggestion Box</a>
   </div>
 
-  <hr>
-  <div class="footer">
-    <span>Developed by <strong>CSBS Final Year Students – GPREC</strong> | </span>
-    <span><em>GPREC SUGGESTION BOX</em> | </span>
-    <span>© 2025 All rights reserved.</span>
-  </div>
-
   <script>
     const output = document.getElementById("output");
     const searchInput = document.getElementById("searchInput");
     const statusFilter = document.getElementById("statusFilter");
     const statusDashboard = document.getElementById("statusDashboard");
+    const menu = document.getElementById("menu");
+
+    function toggleMenu() {
+      menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+    }
 
     const correctPassword = "admin@2025";
     const entered = prompt("🔐 Enter admin password:");
 
     if (entered === correctPassword) {
-      let suggestions = [];
+      let suggestions = JSON.parse(localStorage.getItem("suggestions") || "[]");
 
-      fetch("https://script.google.com/macros/s/AKfycby2Z76ibttMdaZDc4K0JBDR2HoLIMW1F7gQmHhfjrfDMb8oc6Dwk9PRDVF6aonZclGf/exec")
-        .then(res => res.json())
-        .then(data => {
-          suggestions = data.map(s => ({
-            name: s.name || "Anonymous",
-            dept: s.dept || "",
-            suggestion: s.suggestion || "",
-            time: s.time || "",
-            status: s.status || "Pending",
-            note: s.note || ""
-          }));
-
-          renderDashboard();
-          renderSuggestions();
-        })
-        .catch(err => {
-          output.innerHTML = "<p class='access-denied'>❌ Failed to load suggestions from server.</p>";
-        });
+      suggestions.forEach(s => {
+        if (!s.status) s.status = "Pending";
+        if (!s.note) s.note = "";
+      });
 
       function renderDashboard() {
         const counts = { Pending: 0, "Under Review": 0, Implemented: 0, Rejected: 0, Solved: 0 };
@@ -255,21 +227,62 @@
           const div = document.createElement("div");
           div.className = "suggestion " + s.status.toLowerCase().replace(/\s/g, "");
           div.innerHTML = `
-            <p><strong>👤 Name:</strong> ${s.name}</p>
-            <p><strong>🏷️ Department:</strong> ${s.dept}</p>
+            <p><strong>👤 Name:</strong> ${s.name || "Anonymous"}</p>
             <p><strong>💬 Suggestion:</strong> ${s.suggestion}</p>
             <p><small>🕒 ${s.time}</small></p>
-            <p><strong>Status:</strong> ${s.status}</p>
-            <div><strong>📝 Admin Note:</strong> ${s.note}</div>
+            <p><strong>Status:</strong>
+              <select class="status-select" onchange="updateStatus(${index}, this.value)">
+                ${["Pending", "Under Review", "Implemented", "Rejected", "Solved"]
+                  .map(opt => `<option ${s.status === opt ? "selected" : ""}>${opt}</option>`)
+                  .join("")}
+              </select>
+            </p>
+            <div class="admin-note">
+              <strong>📝 Admin Note:</strong>
+              <textarea rows="2" onchange="saveNote(${index}, this.value)">${s.note}</textarea>
+            </div>
+            <div class="buttons">
+              <button class="delete-btn" onclick="deleteSuggestion(${index})">🗑️ Delete</button>
+            </div>
           `;
           output.appendChild(div);
         });
       }
 
-      function exportCSV() {
+      window.updateStatus = function(index, value) {
+        suggestions[index].status = value;
+        localStorage.setItem("suggestions", JSON.stringify(suggestions));
+        renderSuggestions();
+        renderDashboard();
+      }
+
+      window.saveNote = function(index, note) {
+        suggestions[index].note = note;
+        localStorage.setItem("suggestions", JSON.stringify(suggestions));
+      }
+
+      window.deleteSuggestion = function(index) {
+        if (confirm("Delete this suggestion?")) {
+          suggestions.splice(index, 1);
+          localStorage.setItem("suggestions", JSON.stringify(suggestions));
+          renderSuggestions();
+          renderDashboard();
+        }
+      }
+
+      window.clearAll = function() {
+        if (confirm("⚠️ Are you sure you want to delete ALL suggestions?")) {
+          localStorage.removeItem("suggestions");
+          suggestions = [];
+          renderSuggestions();
+          renderDashboard();
+        }
+      }
+
+      window.exportCSV = function() {
         let csv = "Name,Department,Suggestion,Time,Status,Admin Note\n";
         suggestions.forEach(s => {
-          csv += `"${s.name}","${s.dept}","${s.suggestion}","${s.time}","${s.status}","${s.note}"\n`;
+          csv += `${s.name || "Anonymous"},,${s.suggestion.replace(/,/g, ";")},${s.time},${s.status},${s.note.replace(/,/g, ";")}\n`;
         });
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
@@ -279,17 +292,23 @@
         a.click();
       }
 
-      function clearAll() {
-        if (confirm("⚠️ This will clear the admin display only. Want to continue?")) {
-          output.innerHTML = "<p>✅ Cleared locally. Suggestions remain in Google Sheet.</p>";
-        }
+      window.exportExcel = function() {
+        let table = [['Name', 'Department', 'Suggestion', 'Time', 'Status', 'Admin Note']];
+        suggestions.forEach(s => {
+          table.push([s.name || "Anonymous", '', s.suggestion, s.time, s.status, s.note]);
+        });
+        let csvContent = "data:application/vnd.ms-excel," + table.map(e => e.join("\t")).join("\n");
+        const a = document.createElement("a");
+        a.href = encodeURI(csvContent);
+        a.download = "suggestions_export.xls";
+        a.click();
       }
 
       searchInput.addEventListener("input", renderSuggestions);
       statusFilter.addEventListener("change", renderSuggestions);
-      window.exportCSV = exportCSV;
-      window.clearAll = clearAll;
 
+      renderDashboard();
+      renderSuggestions();
     } else {
       document.body.innerHTML = "<p class='access-denied'>❌ Access Denied. You are not authorized to view this page.</p>";
     }
