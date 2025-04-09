@@ -47,43 +47,43 @@
       font-size: 1rem;
     }
 
-    .hamburger {
+    .three-dot-menu {
       position: absolute;
       top: 10px;
-      right: 15px;
-      font-size: 20px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      z-index: 1001;
+      right: 10px;
     }
 
-    .menu {
-      position: absolute;
-      top: 40px;
-      right: 15px;
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropdown-content {
       display: none;
-      flex-direction: column;
+      position: absolute;
+      background-color: white;
       min-width: 160px;
-      font-size: 0.9rem;
-      z-index: 1000;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+      border-radius: 8px;
+      overflow: hidden;
     }
 
-    .menu button {
-      padding: 0.5rem 1rem;
+    .dropdown-content button {
+      width: 100%;
+      padding: 8px 12px;
       border: none;
-      background: white;
-      text-align: left;
+      background-color: white;
       cursor: pointer;
-      border-bottom: 1px solid #eee;
+      font-size: 0.9rem;
     }
 
-    .menu button:hover {
-      background: #f1f1f1;
+    .dropdown-content button:hover {
+      background-color: #f1f1f1;
+    }
+
+    .dropdown:hover .dropdown-content {
+      display: block;
     }
 
     .suggestion {
@@ -152,14 +152,26 @@
       font-size: 1.2rem;
       margin-top: 5rem;
     }
+
+    .footer {
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      color: #555;
+      font-size: 14px;
+      margin-top: 3rem;
+      margin-bottom: 1rem;
+    }
   </style>
 </head>
 <body>
-  <button class="hamburger" onclick="toggleMenu()">☰</button>
-  <div class="menu" id="menu">
-    <button onclick="exportCSV()">📄 Export CSV</button>
-    <button onclick="exportExcel()">📊 Export Excel</button>
-    <button onclick="clearAll()">🧹 Clear All</button>
+  <div class="three-dot-menu">
+    <div class="dropdown">
+      <button>⋮</button>
+      <div class="dropdown-content">
+        <button onclick="exportCSV()">📄 Export CSV</button>
+        <button onclick="clearAll()">🧹 Clear All</button>
+      </div>
+    </div>
   </div>
 
   <h1>📬 GPREC Admin Panel</h1>
@@ -183,16 +195,19 @@
     <a href="index.html">← Back to Suggestion Box</a>
   </div>
 
+  <hr>
+  <div class="footer">
+  <span>Developed by <strong>CSBS Final Year Students – GPREC</strong> | </span>
+  <span><em>GPREC SUGGESTION BOX</em> | </span>
+  <span>© 2025 All rights reserved.</span>
+</div>
+
+
   <script>
     const output = document.getElementById("output");
     const searchInput = document.getElementById("searchInput");
     const statusFilter = document.getElementById("statusFilter");
     const statusDashboard = document.getElementById("statusDashboard");
-    const menu = document.getElementById("menu");
-
-    function toggleMenu() {
-      menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
-    }
 
     const correctPassword = "admin@2025";
     const entered = prompt("🔐 Enter admin password:");
@@ -289,18 +304,6 @@
         const a = document.createElement("a");
         a.href = url;
         a.download = "suggestions_export.csv";
-        a.click();
-      }
-
-      window.exportExcel = function() {
-        let table = [['Name', 'Department', 'Suggestion', 'Time', 'Status', 'Admin Note']];
-        suggestions.forEach(s => {
-          table.push([s.name || "Anonymous", '', s.suggestion, s.time, s.status, s.note]);
-        });
-        let csvContent = "data:application/vnd.ms-excel," + table.map(e => e.join("\t")).join("\n");
-        const a = document.createElement("a");
-        a.href = encodeURI(csvContent);
-        a.download = "suggestions_export.xls";
         a.click();
       }
 
