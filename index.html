@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Digital Suggestion Box</title>
+  <style>
+    :root {
+      --primary: #4caf50;
+      --secondary: #e8f5e9;
+      --accent: #fce4ec;
+    }
+
+    body {
+      margin: 0;
+      padding: 2rem 1rem;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #f1f8e9, #fff);
+      color: #333;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 1rem;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 0.8rem;
+      margin-top: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    button {
+      margin-top: 1.5rem;
+      width: 100%;
+      padding: 0.9rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-size: 1.1rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #388e3c;
+    }
+
+    .success {
+      margin-top: 1rem;
+      text-align: center;
+      color: green;
+      font-weight: bold;
+    }
+
+    .admin-link {
+      text-align: center;
+      margin-top: 2rem;
+    }
+
+    .admin-link a {
+      text-decoration: none;
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>📬 Suggestion Box</h1>
+
+    <form id="suggestionForm">
+      <label for="name">👤 Name</label>
+      <input type="text" id="name" />
+
+      <label for="dept">🏷️ Department / Class</label>
+      <input type="text" id="dept" required />
+
+      <label for="suggestion">💬 Your Suggestion</label>
+      <textarea id="suggestion" required></textarea>
+
+      <button type="submit">Submit Suggestion</button>
+    </form>
+
+    <div id="successMessage" class="success"></div>
+
+    <div class="admin-link">
+      <a href="admin.html">🔐 Admin Panel</a>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("suggestionForm");
+    const success = document.getElementById("successMessage");
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const name = document.getElementById("name").value.trim();
+      const dept = document.getElementById("dept").value.trim();
+      const suggestion = document.getElementById("suggestion").value.trim();
+
+      const newSuggestion = {
+        name,
+        dept,
+        suggestion,
+        time: new Date().toLocaleString()
+      };
+
+      const all = JSON.parse(localStorage.getItem("suggestions") || "[]");
+      all.push(newSuggestion);
+      localStorage.setItem("suggestions", JSON.stringify(all));
+
+      success.textContent = "✅ Suggestion submitted successfully!";
+      form.reset();
+
+      setTimeout(() => {
+        success.textContent = "";
+      }, 3000);
+    });
+  </script>
+
+</body>
+</html>
