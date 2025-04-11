@@ -138,6 +138,7 @@
   <button class="hamburger" onclick="toggleMenu()">☰</button>
   <div class="menu" id="menu">
     <button onclick="exportCSV()">📄 Export CSV</button>
+    <button onclick="exportExcel()">📊 Export Excel</button>
     <button onclick="clearAll()">🧹 Clear All</button>
   </div>
   <h1>📬 GPREC Admin Panel</h1>
@@ -246,6 +247,19 @@
         const a = document.createElement("a");
         a.href = url;
         a.download = "suggestions.csv";
+        a.click();
+      };
+      window.exportExcel = function() {
+        let table = [['Name', 'Department', 'Suggestion', 'Time', 'Status', 'Note']];
+        suggestions.forEach(s => {
+          table.push([s.name, s.dept, s.suggestion, s.time, s.status, s.note]);
+        });
+        let content = table.map(r => r.join("\t")).join("\n");
+        const blob = new Blob([content], { type: 'application/vnd.ms-excel' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "suggestions.xls";
         a.click();
       };
       searchInput.addEventListener("input", renderSuggestions);
