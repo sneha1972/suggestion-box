@@ -1,8 +1,9 @@
+<!-- admin.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GPREC Suggestion Box - Admin</title>
   <style>
     :root {
@@ -12,33 +13,27 @@
       --rejected: #ffebee;
       --solved: #e0e0e0;
     }
-
     body {
       font-family: 'Segoe UI', sans-serif;
       background: linear-gradient(to right, #e3f2fd, #fff);
       padding: 1rem;
     }
-
     h1 {
       text-align: center;
       color: var(--primary);
     }
-
     .dashboard {
       text-align: center;
       margin: 1rem 0;
     }
-
     .dashboard span {
       margin: 0 10px;
       font-weight: bold;
     }
-
     .filter-box {
       text-align: center;
       margin-bottom: 1rem;
     }
-
     .filter-box input,
     .filter-box select {
       padding: 0.5rem;
@@ -46,7 +41,6 @@
       border-radius: 6px;
       font-size: 1rem;
     }
-
     .hamburger {
       position: absolute;
       top: 10px;
@@ -57,7 +51,6 @@
       cursor: pointer;
       z-index: 1001;
     }
-
     .menu {
       position: absolute;
       top: 40px;
@@ -72,7 +65,6 @@
       font-size: 0.9rem;
       z-index: 1000;
     }
-
     .menu button {
       padding: 0.5rem 1rem;
       border: none;
@@ -81,11 +73,9 @@
       cursor: pointer;
       border-bottom: 1px solid #eee;
     }
-
     .menu button:hover {
       background: #f1f1f1;
     }
-
     .suggestion {
       background: #fff;
       padding: 1rem;
@@ -95,16 +85,13 @@
       max-width: 800px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.08);
     }
-
     .review { background: var(--review); }
     .implemented { background: var(--implemented); }
     .rejected { background: var(--rejected); }
     .solved { background: var(--solved); text-decoration: line-through; opacity: 0.7; }
-
     .buttons {
       margin-top: 1rem;
     }
-
     .buttons button {
       padding: 0.5rem 1rem;
       margin-right: 0.5rem;
@@ -112,39 +99,32 @@
       border-radius: 6px;
       cursor: pointer;
     }
-
     .delete-btn {
       background-color: #f44336;
       color: white;
     }
-
     .status-select {
       padding: 0.4rem;
       margin-top: 0.5rem;
     }
-
     textarea {
       width: 100%;
       margin-top: 0.5rem;
       border-radius: 6px;
       padding: 0.5rem;
     }
-
     .admin-note {
       margin-top: 0.5rem;
     }
-
     .back-link {
       text-align: center;
       margin-top: 2rem;
     }
-
     .back-link a {
       text-decoration: none;
       color: var(--primary);
       font-weight: bold;
     }
-
     .access-denied {
       text-align: center;
       color: red;
@@ -158,13 +138,10 @@
   <button class="hamburger" onclick="toggleMenu()">☰</button>
   <div class="menu" id="menu">
     <button onclick="exportCSV()">📄 Export CSV</button>
-    <button onclick="exportExcel()">📊 Export Excel</button>
     <button onclick="clearAll()">🧹 Clear All</button>
   </div>
-
   <h1>📬 GPREC Admin Panel</h1>
   <div class="dashboard" id="statusDashboard"></div>
-
   <div class="filter-box">
     <input type="text" id="searchInput" placeholder="🔍 Search by name or suggestion...">
     <select id="statusFilter">
@@ -176,139 +153,103 @@
       <option>Solved</option>
     </select>
   </div>
-
   <div id="output"></div>
-
   <div class="back-link">
     <a href="index.html">← Back to Suggestion Box</a>
   </div>
-
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
   <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC1Pjm7T5bdnPGFrQZ3Jx-1AqKYTmv3iTQ",
+      authDomain: "gprec-suggestion-box.firebaseapp.com",
+      databaseURL: "https://gprec-suggestion-box-default-rtdb.firebaseio.com",
+      projectId: "gprec-suggestion-box",
+      storageBucket: "gprec-suggestion-box.firebasestorage.app",
+      messagingSenderId: "113493870122",
+      appId: "1:113493870122:web:9cb160f7db8e17f6d26553"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
     const output = document.getElementById("output");
     const searchInput = document.getElementById("searchInput");
     const statusFilter = document.getElementById("statusFilter");
     const statusDashboard = document.getElementById("statusDashboard");
     const menu = document.getElementById("menu");
-
     function toggleMenu() {
       menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
     }
-
     const correctPassword = "admin@2025";
     const entered = prompt("🔐 Enter admin password:");
-
     if (entered === correctPassword) {
-      let suggestions = JSON.parse(localStorage.getItem("suggestions") || "[]");
-
-      suggestions.forEach(s => {
-        if (!s.status) s.status = "Pending";
-        if (!s.note) s.note = "";
+      db.ref("suggestions").on("value", snapshot => {
+        const data = snapshot.val() || {};
+        window.suggestions = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+        renderDashboard();
+        renderSuggestions();
       });
-
       function renderDashboard() {
         const counts = { Pending: 0, "Under Review": 0, Implemented: 0, Rejected: 0, Solved: 0 };
         suggestions.forEach(s => counts[s.status]++);
-        statusDashboard.innerHTML = Object.entries(counts)
-          .map(([k, v]) => `<span>${k}: ${v}</span>`)
-          .join(" | ");
+        statusDashboard.innerHTML = Object.entries(counts).map(([k, v]) => `<span>${k}: ${v}</span>`).join(" | ");
       }
-
       function renderSuggestions() {
         output.innerHTML = "";
         const filterText = searchInput.value.toLowerCase();
         const statusVal = statusFilter.value;
-
-        const filtered = suggestions.filter(s =>
-          (s.name + s.suggestion).toLowerCase().includes(filterText) &&
-          (statusVal === "" || s.status === statusVal)
-        );
-
-        filtered.forEach((s, index) => {
+        suggestions.filter(s => (s.name + s.suggestion).toLowerCase().includes(filterText) && (statusVal === "" || s.status === statusVal)).reverse().forEach(s => {
           const div = document.createElement("div");
           div.className = "suggestion " + s.status.toLowerCase().replace(/\s/g, "");
           div.innerHTML = `
             <p><strong>👤 Name:</strong> ${s.name || "Anonymous"}</p>
+            <p><strong>🏷️ Department:</strong> ${s.dept}</p>
             <p><strong>💬 Suggestion:</strong> ${s.suggestion}</p>
             <p><small>🕒 ${s.time}</small></p>
             <p><strong>Status:</strong>
-              <select class="status-select" onchange="updateStatus(${index}, this.value)">
-                ${["Pending", "Under Review", "Implemented", "Rejected", "Solved"]
-                  .map(opt => `<option ${s.status === opt ? "selected" : ""}>${opt}</option>`)
-                  .join("")}
+              <select class="status-select" onchange="updateStatus('${s.id}', this.value)">
+                ${["Pending", "Under Review", "Implemented", "Rejected", "Solved"].map(opt => `<option ${s.status === opt ? "selected" : ""}>${opt}</option>`).join("")}
               </select>
             </p>
             <div class="admin-note">
               <strong>📝 Admin Note:</strong>
-              <textarea rows="2" onchange="saveNote(${index}, this.value)">${s.note}</textarea>
+              <textarea rows="2" onchange="saveNote('${s.id}', this.value)">${s.note}</textarea>
             </div>
             <div class="buttons">
-              <button class="delete-btn" onclick="deleteSuggestion(${index})">🗑️ Delete</button>
-            </div>
-          `;
+              <button class="delete-btn" onclick="deleteSuggestion('${s.id}')">🗑️ Delete</button>
+            </div>`;
           output.appendChild(div);
         });
       }
-
-      window.updateStatus = function(index, value) {
-        suggestions[index].status = value;
-        localStorage.setItem("suggestions", JSON.stringify(suggestions));
-        renderSuggestions();
-        renderDashboard();
-      }
-
-      window.saveNote = function(index, note) {
-        suggestions[index].note = note;
-        localStorage.setItem("suggestions", JSON.stringify(suggestions));
-      }
-
-      window.deleteSuggestion = function(index) {
+      window.updateStatus = function(id, status) {
+        db.ref("suggestions/" + id + "/status").set(status);
+      };
+      window.saveNote = function(id, note) {
+        db.ref("suggestions/" + id + "/note").set(note);
+      };
+      window.deleteSuggestion = function(id) {
         if (confirm("Delete this suggestion?")) {
-          suggestions.splice(index, 1);
-          localStorage.setItem("suggestions", JSON.stringify(suggestions));
-          renderSuggestions();
-          renderDashboard();
+          db.ref("suggestions/" + id).remove();
         }
-      }
-
+      };
       window.clearAll = function() {
         if (confirm("⚠️ Are you sure you want to delete ALL suggestions?")) {
-          localStorage.removeItem("suggestions");
-          suggestions = [];
-          renderSuggestions();
-          renderDashboard();
+          db.ref("suggestions").remove();
         }
-      }
-
+      };
       window.exportCSV = function() {
-        let csv = "Name,Department,Suggestion,Time,Status,Admin Note\n";
+        let csv = "Name,Department,Suggestion,Time,Status,Note\n";
         suggestions.forEach(s => {
-          csv += `${s.name || "Anonymous"},,${s.suggestion.replace(/,/g, ";")},${s.time},${s.status},${s.note.replace(/,/g, ";")}\n`;
+          csv += `${s.name},${s.dept},${s.suggestion},${s.time},${s.status},${s.note}\n`;
         });
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "suggestions_export.csv";
+        a.download = "suggestions.csv";
         a.click();
-      }
-
-      window.exportExcel = function() {
-        let table = [['Name', 'Department', 'Suggestion', 'Time', 'Status', 'Admin Note']];
-        suggestions.forEach(s => {
-          table.push([s.name || "Anonymous", '', s.suggestion, s.time, s.status, s.note]);
-        });
-        let csvContent = "data:application/vnd.ms-excel," + table.map(e => e.join("\t")).join("\n");
-        const a = document.createElement("a");
-        a.href = encodeURI(csvContent);
-        a.download = "suggestions_export.xls";
-        a.click();
-      }
-
+      };
       searchInput.addEventListener("input", renderSuggestions);
       statusFilter.addEventListener("change", renderSuggestions);
-
-      renderDashboard();
-      renderSuggestions();
     } else {
       document.body.innerHTML = "<p class='access-denied'>❌ Access Denied. You are not authorized to view this page.</p>";
     }
